@@ -15,7 +15,7 @@ def read_file(fpath):
         text = f.read()
     return text
 
-nltk.download('punkt')
+
 paragrafos = read_file('respostas.txt')
 
 conteudo = ''
