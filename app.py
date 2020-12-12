@@ -157,5 +157,5 @@ def conversar():
 '''
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="https://chat-com-html.herokuapp.com/", debug=True)
 
