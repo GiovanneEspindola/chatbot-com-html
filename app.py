@@ -1,5 +1,6 @@
-from aiohttp import web
-import socketio
+import numpy as np
+from flask import Flask, render_template, request
+
 import re
 import nltk
 import random
@@ -81,7 +82,7 @@ def responder_saudacao(texto):
       return random.choice(textos_boas_vindas_respostas)
 
 
-def responder(texto_usuario):
+'''def responder(texto_usuario):
   resposta_chatbot = ''
   lista_sentencas_preprocessada.append(texto_usuario)
 
@@ -100,11 +101,42 @@ def responder(texto_usuario):
     return resposta_chatbot
   else:
     resposta_chatbot = resposta_chatbot + lista_sentencas[indice_sentenca]
-    return resposta_chatbot
+    return resposta_chatbot'''
 
 
+app = Flask(__name__)
+
+
+@app.route("/")
+def index():
+     return render_template("chatbot.html") #to send context to html
+
+
+@app.route("/get")
+def get_bot_response():
+     texto_usuario = request.args.get("msg") #get data from input,we write js  to chatbot.html
+     resposta_chatbot = ''
+     lista_sentencas_preprocessada.append(texto_usuario)
+
+     tfidf = TfidfVectorizer()
+     palavras_vetorizadas = tfidf.fit_transform(lista_sentencas_preprocessada)
+
+     similaridade = cosine_similarity(palavras_vetorizadas[-1], palavras_vetorizadas)
+
+     indice_sentenca = similaridade.argsort()[0][-2]
+     vetor_similar = similaridade.flatten()
+     vetor_similar.sort()
+     vetor_encontrado = vetor_similar[-2]
+
+     if (vetor_encontrado == 0):
+         resposta_chatbot = resposta_chatbot + 'Desculpe, eu não entendi.'
+         return str(resposta_chatbot)
+     else:
+         resposta_chatbot = resposta_chatbot + lista_sentencas[indice_sentenca]
+         return str(resposta_chatbot)
+
+'''@app.route("/get")
 def conversar():
-    continuar = True
     print('Olá, eu sou o Babel, o chatbot do Instituto de Letras. Eu posso responder perguntas relacionadas à graduação como:'
           '\nCalendário Acadêmico;'
           '\nConcessão de Créditos;'
@@ -113,44 +145,17 @@ def conversar():
           '\nMenção;'
           '\nEmissão de documentos;'
           '\nAtendimento com Coordenadores.')
-    while continuar == True:
-        texto_usuario = input()
-        texto_usuario = texto_usuario.lower()
-        if texto_usuario != 'tchau':
-            if responder_saudacao(texto_usuario) != None:
-                print('Babel: ' + responder_saudacao(texto_usuario))
-            else:
-                print('Babel: ')
-                print(responder(preprocessamento(texto_usuario)))
-                lista_sentencas_preprocessada.remove(preprocessamento(texto_usuario))
-        else:
-            continuar = False
-    print('Babel: Até mais!')
+    resposta = ''
+    texto_usuario = request.args.get("msg")
+    if responder_saudacao(texto_usuario) != None:
+        resposta = 'Babel: ' + responder_saudacao(texto_usuario)
+    else:
+        resposta = responder(preprocessamento(texto_usuario))
+        lista_sentencas_preprocessada.remove(preprocessamento(texto_usuario))
+    return str(resposta())
 #conversar()
-
-sio = socketio.AsyncServer()
-
-
-app = web.Application()
-
-sio.attach(app)
-
-
-async def index(request):
-    with open('teste.html') as f:
-        return web.Response(text=f.read(), content_type='text/html', charset='utf-8')
-
-messages = []
-
-app.router.add_get('/', index)
-
-
-@sio.on('message')
-async def print_message(sid, message):
-    print("Socket ID: ", sid)
-    await sio.emit('message', responder(message))
-
+'''
 
 if __name__ == '__main__':
-    web.run_app(app, host='localhost')
+    app.run(debug=True)
 
